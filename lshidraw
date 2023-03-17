@@ -1,0 +1,88 @@
+#!/bin/bash
+
+shopt -s nullglob
+
+LSHIDRAW_VERSION="1.0.0"
+LSHIDRAW_YEAR="2023"
+
+verbose_option=0
+json_option=0
+
+output() {
+  if [[ "$json_option" == "1" ]]; then
+    if [[ "${verbose_option}" == 1 ]]; then
+      printf '{ "hidraw": "%s", "vendor_id": "%s", "product_id": "%s", "driver": "%s", "device": "%s" }\n' "$1" "$2" "$3" "$4" "$5"
+    else
+      printf '{ "hidraw": "%s", "device": "%s" }\n' "$1" "$2"
+    fi
+  else
+    if [[ "${verbose_option}" == 1 ]]; then
+      printf "%s \t %s \t %s \t %-20s %s\n" "$1" "$2" "$3" "$4" "$5"
+    else
+      printf '%s \t %s\n' "$1" "$2"
+    fi
+  fi
+}
+
+while getopts "vjhV" opt; do
+  case $opt in
+    j)
+      json_option="1"
+      ;;
+    h)
+      echo "Usage: lshidraw [-h] [-v]"
+      echo "  -j  output in JSON format"
+      echo "  -h  show this help"
+      echo "  -v  show more information"
+      echo "  -V  show version"
+      exit 0
+      ;;
+    v)
+      verbose_option="1"
+      ;;
+    V)
+      echo "lshidraw ${LSHIDRAW_VERSION} ${LSHIDRAW_YEAR}"
+      echo "author: Michal Genserek <mgenserek@gmail.com>"
+      exit 0
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Print header only if not in JSON mode
+if [[ "${verbose_option}" == 1 && ! "${json_option}" == 1 ]]; then
+  printf "%s \t %s \t %s \t %-20s %s\n" "HIDRAW " "VID" "PID" "DRIVER" "DEVICE"
+fi
+
+
+FILES=(/dev/hidraw*)
+if [ ${#FILES[@]} -eq 0 ]; then
+  echo "no HIDRAW devices"
+else
+  for f in "${FILES[@]}"; do
+    FILE=${f##*/}
+    CONTENT=$(cat "/sys/class/hidraw/${FILE}/device/uevent")
+    DEVICE="$(echo "${CONTENT}" | grep HID_NAME | cut -d '=' -f2)"
+    DRIVER="$(echo "${CONTENT}" | grep DRIVER | cut -d '=' -f2)"
+
+    if [[ "${verbose_option}" == 1 ]]; then
+      HID_ID="$(echo "${CONTENT}" | grep HID_ID | cut -d '=' -f2)"
+      # Extract the VENDOR_ID and PRODUCT_ID from HID_ID
+      if [[ $HID_ID =~ :[0]{4}([0-9a-fA-F]{4}):[0]{4}([0-9a-fA-F]{4}) ]]; then
+          VENDOR_ID=${BASH_REMATCH[1]}
+          PRODUCT_ID=${BASH_REMATCH[2]}
+      else
+          VENDOR_ID='n/a'
+          PRODUCT_ID='n/a'
+      fi
+
+      output "$FILE" "$VENDOR_ID" "$PRODUCT_ID" "$DRIVER" "$DEVICE"
+    else
+      output "$FILE" "$DEVICE"
+    fi
+    
+  done
+fi
