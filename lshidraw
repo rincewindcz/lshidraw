@@ -2,11 +2,12 @@
 
 shopt -s nullglob
 
-LSHIDRAW_VERSION="1.0.0"
-LSHIDRAW_YEAR="2023"
+LSHIDRAW_VERSION="1.1.0"
+LSHIDRAW_YEAR="2023-2024"
 
 verbose_option=0
 json_option=0
+driver_filter=""
 
 output() {
   if [[ "$json_option" == "1" ]]; then
@@ -24,17 +25,21 @@ output() {
   fi
 }
 
-while getopts "vjhV" opt; do
+while getopts "vjhVf:" opt; do
   case $opt in
     j)
       json_option="1"
       ;;
+    f)
+      driver_filter="$OPTARG"
+      ;;
     h)
-      echo "Usage: lshidraw [-h] [-v]"
-      echo "  -j  output in JSON format"
-      echo "  -h  show this help"
-      echo "  -v  show more information"
-      echo "  -V  show version"
+      echo "Usage: lshidraw [OPTIONS]"
+      echo "  -j        output in JSON format"
+      echo "  -h        show this help"
+      echo "  -v        show more information"
+      echo "  -f NAME   filter devices by driver name"
+      echo "  -V        show version"
       exit 0
       ;;
     v)
@@ -67,6 +72,10 @@ else
     CONTENT=$(cat "/sys/class/hidraw/${FILE}/device/uevent")
     DEVICE="$(echo "${CONTENT}" | grep HID_NAME | cut -d '=' -f2)"
     DRIVER="$(echo "${CONTENT}" | grep DRIVER | cut -d '=' -f2)"
+
+    if [[ "${driver_filter}" != "" && "${DRIVER}" != "${driver_filter}" ]]; then
+      continue
+    fi
 
     if [[ "${verbose_option}" == 1 ]]; then
       HID_ID="$(echo "${CONTENT}" | grep HID_ID | cut -d '=' -f2)"
