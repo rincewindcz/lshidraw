@@ -5,7 +5,7 @@
 ## Usage
 
 ```
-lshidraw [-h] [-v] [-j] [-V]
+lshidraw [-h] [-v] [-j] [-V] [-f driver]
 ```
 
 ### Options
@@ -13,6 +13,7 @@ lshidraw [-h] [-v] [-j] [-V]
 * `-h`: Show the help message and exit.
 * `-v`: Show more information, including the VID (Vendor ID) and PID (Product ID) of each device, as well as the driver that is used to handle the device.
 * `-j`: Output the information in JSON format.
+* `-f`: Filter results by driver name.
 * `-V`: Show the version of the `lshidraw` tool.
 
 ## Example Output
